@@ -5,8 +5,7 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 import base64
-import email
-import pprint
+import re
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
@@ -39,32 +38,23 @@ def main():
     # Call the Gmail API
     messages_obj = service.users().messages().list(userId='me').execute()
     messages = messages_obj['messages']
-    for message in messages[0:10]:
+    for message in messages[0:50]:
         id = message['id']
-        # if id != '1668ff073292cd76':
-        #     continue
         print('<<<-------------->>>')
-        print(id)
         message = service.users().messages().get(userId='me', id=id, format='full').execute()
         # print(pprint.pprint(message))
         try:
-            for header in message['payload']['headers']:
-                print('{0} : {1}'.format(header['name'], header['value']))
+            # for header in message['payload']['headers']:
+            #     print('{0} : {1}'.format(header['name'], header['value']))
             for part in message['payload']['parts']:
-                data = part['body']['data']
                 msg_str = base64.urlsafe_b64decode(part['body']['data'].encode('UTF8'))
-                print(msg_str)
+                # print(msg_str)
+                match = re.search('Caller Name:([ a-zA-Z0-9]*)', msg_str)
+                if match:
+                    print(match.groups())
         except TypeError as e:
             print('****TypeError****')
             print(e.message)
-        # for part in message['payload']['parts']:
-        #     data = part['body']['data']
-        #     try:
-        #
-        #         print(base64.decodestring(data))
-        #     except Exception:
-        #         print('****error****')
-        #         print(data)
 
 
 if __name__ == '__main__':
