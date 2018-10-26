@@ -10,6 +10,12 @@ import re
 # If modifying these scopes, delete the file token.json.
 SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
+filter_list = ['Caller Name:([ a-zA-Z0-9]*)',
+               'User Name:([ a-zA-Z0-9]*)',
+               'Name([ a-zA-Z0-9]*)',
+               ]
+
+
 
 def decode_base64(data):
     """Decode base64, padding being optional.
@@ -49,9 +55,10 @@ def main():
             for part in message['payload']['parts']:
                 msg_str = base64.urlsafe_b64decode(part['body']['data'].encode('UTF8'))
                 # print(msg_str)
-                match = re.search('Caller Name:([ a-zA-Z0-9]*)', msg_str)
-                if match:
-                    print(match.groups())
+                for filter in filter_list:
+                    match = re.search(filter, msg_str)
+                    if match:
+                        print(match.groups())
         except TypeError as e:
             print('****TypeError****')
             print(e.message)
