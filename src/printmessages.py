@@ -1,24 +1,25 @@
 # https://developers.google.com/gmail/api/quickstart/python
 
-from __future__ import print_function
+# from __future__ import print_function
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 import base64
 import re
 
+from form import InfoForm
+
 # If modifying these scopes, delete the file token.json.
 SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
-alpha_numeric_space = '([ a-zA-Z0-9]*)'
-numeric_plus = '([0-9+]*)'
+alpha_numeric_space = '(?P<value>[ a-zA-Z0-9]*)'
+numeric_plus = '(?P<value>[0-9+]*)'
 
-filter_list = ['Name[ :]*'+alpha_numeric_space,
-               'Phone[ :]*'+numeric_plus,
-               'Mobile[ :]*'+numeric_plus,
-               'Email[ :]*([a-zA-Z0-9\.]*@[a-zA-Z0-9\.]*)',
-               ]
-
+pattern_list = ['(?P<token>Name)[ :]*' + alpha_numeric_space,
+               '(?P<token>Phone)[ :]*' + numeric_plus,
+               '(?P<token>Mobile)[ :]*' + numeric_plus,
+               '(?P<token>Email)[ :]*(?P<value>[a-zA-Z0-9\.]*@[a-zA-Z0-9\.]*)',
+                ]
 
 
 def decode_base64(data):
@@ -50,22 +51,33 @@ def main():
     messages = messages_obj['messages']
     for message in messages[0:50]:
         id = message['id']
-        print('<<<-------------->>>')
+        # print '<<<-------------->>>'
         message = service.users().messages().get(userId='me', id=id, format='full').execute()
-        # print(pprint.pprint(message))
         try:
             # for header in message['payload']['headers']:
             #     print('{0} : {1}'.format(header['name'], header['value']))
             for part in message['payload']['parts']:
                 msg_str = base64.urlsafe_b64decode(part['body']['data'].encode('UTF8'))
-                # print(msg_str)
-                for filter in filter_list:
-                    match = re.search(filter, msg_str)
+                info_form = InfoForm()
+                for pattern in pattern_list:
+                    match = re.search(pattern, msg_str)
                     if match:
-                        print(match.groups()[0])
+                        if match.group('value') == '':
+                            continue
+                        # print '{0} : {1}'.format(match.group('token'), match.group('value'))
+                        if match.group('token') == 'Name':
+                            info_form.name = match.group('value')
+                        if match.group('token') in ('Phone', 'Mobile'):
+                            info_form.phone = match.group('value')
+                        if match.group('token') == 'Email':
+                            info_form.email = match.group('value')
+                if info_form.is_valid():
+                    print info_form
+                    print '<<<-------------->>>'
+
         except TypeError as e:
-            print('****TypeError****')
-            print(e.message)
+            print '****TypeError****'
+            print e.message
 
 
 if __name__ == '__main__':
