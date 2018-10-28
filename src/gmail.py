@@ -1,13 +1,32 @@
 # https://developers.google.com/gmail/api/quickstart/python
 
-# from __future__ import print_function
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 import base64
 import re
 
-from form import InfoForm
+
+class InfoForm(object):
+    def __init__(self):
+        self.name = None
+        self.phone = None
+        self.email = None
+
+    def is_valid(self):
+        if not self.name:
+            return False
+        if not self.phone and not self.email:
+            return False
+        return True
+
+    def __str__(self):
+        result = '{0}  : {1}'.format('Name', self.name)
+        if self.phone:
+            result += '\n{0} : {1}'.format('Phone', self.phone)
+        if self.email:
+            result += '\n{0} : {1}'.format('Email', self.email)
+        return result
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
@@ -22,23 +41,11 @@ pattern_list = ['(?P<token>Name)[ :]*' + alpha_numeric_space,
                 ]
 
 
-def decode_base64(data):
-    """Decode base64, padding being optional.
-
-    :param data: Base64 data as an ASCII byte string
-    :returns: The decoded byte string.
-
-    """
-    missing_padding = len(data) % 4
-    if missing_padding != 0:
-        data += b'=' * (4 - missing_padding)
-    return base64.decodestring(data)
-
-
-def main():
+def extract_info():
     """Shows basic usage of the Gmail API.
     Lists the user's Gmail labels.
     """
+    info_form_list = []
     store = file.Storage('token.json')
     creds = store.get()
     if not creds or creds.invalid:
@@ -72,13 +79,12 @@ def main():
                         if match.group('token') == 'Email':
                             info_form.email = match.group('value')
                 if info_form.is_valid():
-                    print info_form
-                    print '<<<-------------->>>'
+                    info_form_list.append(info_form)
+                    # print info_form
+                    # print '<<<-------------->>>'
 
         except TypeError as e:
             print '****TypeError****'
             print e.message
 
-
-if __name__ == '__main__':
-    main()
+    return info_form_list
