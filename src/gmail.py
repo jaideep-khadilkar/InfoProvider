@@ -28,6 +28,15 @@ class InfoForm(object):
             result += '\n{0} : {1}'.format('Email', self.email)
         return result
 
+    def correct_phone(self):
+        if not self.phone:
+            return
+        match = re.match('(?P<isd>\+91)?(?P<number>[0-9]{10})', self.phone)
+        if match:
+            if not match.group('isd'):
+                self.phone = '+91' + self.phone
+
+
 # If modifying these scopes, delete the file token.json.
 SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
@@ -35,9 +44,9 @@ alpha_numeric_space = '(?P<value>[ a-zA-Z0-9]*)'
 numeric_plus = '(?P<value>[0-9+]*)'
 
 pattern_list = ['(?P<token>Name)[ :]*' + alpha_numeric_space,
-               '(?P<token>Phone)[ :]*' + numeric_plus,
-               '(?P<token>Mobile)[ :]*' + numeric_plus,
-               '(?P<token>Email)[ :]*(?P<value>[a-zA-Z0-9\.]*@[a-zA-Z0-9\.]*)',
+                '(?P<token>Phone)[ :]*' + numeric_plus,
+                '(?P<token>Mobile)[ :]*' + numeric_plus,
+                '(?P<token>Email)[ :]*(?P<value>[a-zA-Z0-9\.]*@[a-zA-Z0-9\.]*)',
                 ]
 
 
@@ -57,9 +66,7 @@ def extract_info():
     messages_obj = service.users().messages().list(userId='me').execute()
     messages = messages_obj['messages']
     for message in messages[0:50]:
-        id = message['id']
-        # print '<<<-------------->>>'
-        message = service.users().messages().get(userId='me', id=id, format='full').execute()
+        message = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
         try:
             # for header in message['payload']['headers']:
             #     print('{0} : {1}'.format(header['name'], header['value']))
@@ -80,8 +87,6 @@ def extract_info():
                             info_form.email = match.group('value')
                 if info_form.is_valid():
                     info_form_list.append(info_form)
-                    # print info_form
-                    # print '<<<-------------->>>'
 
         except TypeError as e:
             print '****TypeError****'
