@@ -10,9 +10,13 @@ import re
 # If modifying these scopes, delete the file token.json.
 SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
-filter_list = ['Caller Name:([ a-zA-Z0-9]*)',
-               'User Name:([ a-zA-Z0-9]*)',
-               'Name([ a-zA-Z0-9]*)',
+alpha_numeric_space = '([ a-zA-Z0-9]*)'
+numeric_plus = '([0-9+]*)'
+
+filter_list = ['Name[ :]*'+alpha_numeric_space,
+               'Phone[ :]*'+numeric_plus,
+               'Mobile[ :]*'+numeric_plus,
+               'Email[ :]*([a-zA-Z0-9\.]*@[a-zA-Z0-9\.]*)',
                ]
 
 
@@ -58,7 +62,7 @@ def main():
                 for filter in filter_list:
                     match = re.search(filter, msg_str)
                     if match:
-                        print(match.groups())
+                        print(match.groups()[0])
         except TypeError as e:
             print('****TypeError****')
             print(e.message)
