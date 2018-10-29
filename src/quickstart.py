@@ -30,6 +30,7 @@ def main():
         print('Labels:')
         for label in labels:
             print(label['name'])
+            print(label['id'])
 
 
 if __name__ == '__main__':

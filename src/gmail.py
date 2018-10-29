@@ -40,34 +40,51 @@ class InfoForm(object):
 # If modifying these scopes, delete the file token.json.
 SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
-alpha_numeric_space = '(?P<value>[ a-zA-Z0-9]*)'
-numeric_plus = '(?P<value>[0-9+]*)'
 
-pattern_list = ['(?P<token>Name)[ :]*' + alpha_numeric_space,
-                '(?P<token>Phone)[ :]*' + numeric_plus,
-                '(?P<token>Mobile)[ :]*' + numeric_plus,
-                '(?P<token>Email)[ :]*(?P<value>[a-zA-Z0-9\.]*@[a-zA-Z0-9\.]*)',
-                ]
+class Gmail(object):
+    def __init__(self):
+        store = file.Storage('token.json')
+        creds = store.get()
+        if not creds or creds.invalid:
+            flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
+            creds = tools.run_flow(flow, store)
+        self.service = build('gmail', 'v1', http=creds.authorize(Http()))
+        self.ar_input_id = self.get_label_id('ar_input')
 
+    def get_label_id(self, label_name):
+        # Label
+        results = self.service.users().labels().list(userId='me').execute()
+        labels = results.get('labels', [])
+        ar_input_id = None
+        if not labels:
+            print('No labels found.')
+            raise KeyError
+        else:
+            for label in labels:
+                if label['name'] == label_name:
+                    ar_input_id = label['id']
+                    break
+            if not ar_input_id:
+                raise KeyError
+        return ar_input_id
 
-def extract_info():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail labels.
-    """
-    info_form_list = []
-    store = file.Storage('token.json')
-    creds = store.get()
-    if not creds or creds.invalid:
-        flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
-        creds = tools.run_flow(flow, store)
-    service = build('gmail', 'v1', http=creds.authorize(Http()))
+    def read_messages(self):
+        # Call the Gmail API
+        info_form_list = []
+        alpha_numeric_space = '(?P<value>[ a-zA-Z0-9]*)'
+        numeric_plus = '(?P<value>[0-9+]*)'
+        pattern_list = ['(?P<token>Name)[ :]*' + alpha_numeric_space,
+                        '(?P<token>Phone)[ :]*' + numeric_plus,
+                        '(?P<token>Mobile)[ :]*' + numeric_plus,
+                        '(?P<token>Email)[ :]*(?P<value>[a-zA-Z0-9\.]*@[a-zA-Z0-9\.]*)',
+                        ]
+        messages_obj = self.service.users().messages().list(userId='me').execute()
+        messages = messages_obj['messages']
+        for message in messages[0:100]:
+            message = self.service.users().messages().get(userId='me', id=message['id'], format='full').execute()
 
-    # Call the Gmail API
-    messages_obj = service.users().messages().list(userId='me').execute()
-    messages = messages_obj['messages']
-    for message in messages[0:50]:
-        message = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
-        try:
+            if self.ar_input_id not in message['labelIds']:
+                continue
             # for header in message['payload']['headers']:
             #     print('{0} : {1}'.format(header['name'], header['value']))
             for part in message['payload']['parts']:
@@ -87,9 +104,4 @@ def extract_info():
                             info_form.email = match.group('value')
                 if info_form.is_valid():
                     info_form_list.append(info_form)
-
-        except TypeError as e:
-            print '****TypeError****'
-            print e.message
-
-    return info_form_list
+        return info_form_list

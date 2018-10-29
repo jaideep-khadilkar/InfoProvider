@@ -2,7 +2,7 @@ import gmail
 
 
 def main():
-    info_form_list = gmail.extract_info()
+    info_form_list = gmail.Gmail().read_messages()
     for info_form in info_form_list:
         info_form.correct_phone()
         print info_form
