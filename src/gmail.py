@@ -1,10 +1,11 @@
 # https://developers.google.com/gmail/api/quickstart/python
+import logging
+import re
+import base64
 
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
-import base64
-import re
 
 
 class InfoForm(object):
@@ -57,7 +58,7 @@ class Gmail(object):
         labels = results.get('labels', [])
         ar_input_id = None
         if not labels:
-            print('No labels found.')
+            logging.error('Label \'ar_input\' does not exist.')
             raise KeyError
         else:
             for label in labels:
@@ -65,6 +66,7 @@ class Gmail(object):
                     ar_input_id = label['id']
                     break
             if not ar_input_id:
+                logging.error('Label \'ar_input\' does not exist.')
                 raise KeyError
         return ar_input_id
 
@@ -81,6 +83,7 @@ class Gmail(object):
         messages_obj = self.service.users().messages().list(userId='me').execute()
         messages = messages_obj['messages']
         for message in messages[0:100]:
+            print '.',
             message = self.service.users().messages().get(userId='me', id=message['id'], format='full').execute()
 
             if self.ar_input_id not in message['labelIds']:
@@ -103,5 +106,7 @@ class Gmail(object):
                         if match.group('token') == 'Email':
                             info_form.email = match.group('value')
                 if info_form.is_valid():
+                    info_form.correct_phone()
                     info_form_list.append(info_form)
+        print '\n'
         return info_form_list
